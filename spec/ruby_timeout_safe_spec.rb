@@ -1,10 +1,14 @@
 # frozen_string_literal: true
 
 RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
-  it 'raises a Timeout::Error if the block execution time exceeds the limit' do
-    expect do
-      RubyTimeoutSafe.timeout(1) { sleep 100 }
-    end.to raise_error(Timeout::Error, 'execution expired')
+  describe 'multiple time calls' do
+    3.times do |i|
+      it "#{i} raises a Timeout::Error if the block execution time exceeds the limit" do
+        expect do
+          RubyTimeoutSafe.timeout(1) { sleep 3 }
+        end.to raise_error(Timeout::Error, 'execution expired')
+      end
+    end
   end
 
   it 'does not raise a Timeout::Error if the block execution time is within the limit' do

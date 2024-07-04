@@ -30,11 +30,11 @@ static struct timeout_data *global_timeout_data = NULL;
 static VALUE rb_eTimeoutError;
 
 /**
- * @brief Signal handler for SIGTERM and SIGINT.
+ * @brief Signal handler for SIGALRM and SIGTERM.
  *
  * Sets the signal_received flag if global_timeout_data is available.
  *
- * @param signum The signal number (SIGTERM or SIGINT)
+ * @param signum The signal number (SIGALRM or SIGTERM)
  */
 static void signal_handler(int signum) {
     pthread_mutex_lock(&global_data_mutex);
@@ -42,6 +42,11 @@ static void signal_handler(int signum) {
         __atomic_store_n(&global_timeout_data->signal_received, 1, __ATOMIC_SEQ_CST);
     }
     pthread_mutex_unlock(&global_data_mutex);
+    if (signum == SIGALRM) {
+        rb_raise(rb_eTimeoutError, "execution expired");
+    } else {
+        rb_raise(rb_eInterrupt, "execution interrupted by signal");
+    }
 }
 
 /**
@@ -71,19 +76,6 @@ static void* timeout_function(void *arg) {
     }
     pthread_mutex_unlock(&mutex);
     return NULL;
-}
-
-/**
- * @brief Signal handler for SIGALRM.
- *
- * Raises a Ruby exception if timeout occurred.
- *
- * @param signum The signal number (SIGALRM)
- */
-static void sigalrm_handler(int signum) {
-    if (__atomic_load_n(&global_timeout_data->timeout_occurred, __ATOMIC_SEQ_CST)) {
-        rb_raise(rb_eTimeoutError, "execution expired");
-    }
 }
 
 /**
@@ -136,7 +128,7 @@ static VALUE ruby_timeout_safe_timeout(VALUE self, VALUE seconds) {
         rb_sys_fail("sigaction");
     }
 
-    sa.sa_handler = sigalrm_handler;
+    sa.sa_handler = signal_handler;
     if (sigaction(SIGALRM, &sa, &old_sa_alrm) == -1) {
         sigaction(SIGTERM, &old_sa_term, NULL);
         sigaction(SIGINT, &old_sa_int, NULL);
