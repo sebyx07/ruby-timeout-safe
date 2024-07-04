@@ -17,13 +17,13 @@ Add this line to your application's Gemfile:
 
 ```ruby
 gem 'ruby-timeout-safe'
+```
+
 And then execute:
+`bundle install`
 
-$ bundle install
-Or install it yourself as:
-
-$ gem install ruby-timeout-safe
-Usage
+### Usage:
+```ruby
 require 'ruby_timeout_safe'
 
 # Execute a block with a 2-second timeout
@@ -42,19 +42,21 @@ begin
 rescue Timeout::Error => e
   puts "Execution timed out: #{e.message}"
 end
-Caveats
+```
+
+### Caveats
 This extension uses low-level threading and signal handling primitives, which may not be compatible with all Ruby implementations or platforms. It is recommended to use the standard Ruby Timeout module when possible.
 
-Development
+### Development
 After checking out the repo, run bin/setup to install dependencies. Then, run rake spec to run the tests.
 
 To install this gem onto your local machine, run bundle exec rake install.
 
-Contributing
+### Contributing
 Bug reports and pull requests are welcome on GitHub at https://github.com/sebyx07/ruby-timeout-safe. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the code of conduct.
 
-License
+### License
 The gem is available as open source under the terms of the MIT License.
 
-Code of Conduct
+### Code of Conduct
 Everyone interacting in the ruby-timeout-safe project's codebases, issue trackers, chat rooms, and mailing lists is expected to follow the code of conduct.
