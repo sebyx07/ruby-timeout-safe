@@ -1,27 +1,3 @@
-/**
- * @file ruby_timeout_safe.c
- * @brief A Ruby C extension that provides a timeout functionality for executing Ruby blocks.
- *
- * This extension defines a `RubyTimeoutSafe` module with a `timeout` method that
- * executes a given Ruby block with a specified timeout duration. If the block execution
- * exceeds the timeout, a `Timeout::Error` exception is raised.
- *
- * The extension uses POSIX threads (pthreads) to create a separate timeout thread that
- * monitors the block execution time. Mutex and condition variables are used for thread
- * synchronization.
- *
- * The extension also handles signals like SIGTERM and SIGINT by setting a flag that
- * causes the timeout to occur. It also defines the `Timeout::Error` exception if it
- * is not already defined in the Ruby environment.
- *
- * The extension supports handling large timeout values (up to the maximum value of `time_t`
- * on the system) and raises an `ArgumentError` if a negative timeout value is provided.
- *
- * @note The extension uses low-level threading and signal handling primitives, which
- *       may not be compatible with all Ruby implementations or platforms. It is
- *       recommended to use the standard Ruby `Timeout` module when possible.
- */
-
 #include "ruby.h"
 #include <pthread.h>
 #include <unistd.h>
@@ -44,13 +20,11 @@ struct timeout_data {
     volatile int timeout_occurred;  /**< Flag indicating if timeout occurred */
     volatile int block_finished;    /**< Flag indicating if the Ruby block finished execution */
     volatile int signal_received;   /**< Flag indicating if a signal was received */
+    pthread_t main_thread;          /**< Thread ID of the main thread */
 };
 
 /* Global pointer to the current timeout data (used by signal handler) */
 static struct timeout_data *global_timeout_data = NULL;
-
-/* Flag to indicate if we're in a forked child process */
-static int in_forked_child = 0;
 
 /* Timeout::Error constant */
 static VALUE rb_eTimeoutError;
@@ -91,11 +65,25 @@ static void* timeout_function(void *arg) {
         int res = pthread_cond_timedwait(&cond, &mutex, &ts);
         if (res == ETIMEDOUT) {
             __atomic_store_n(&data->timeout_occurred, 1, __ATOMIC_SEQ_CST);
+            pthread_kill(data->main_thread, SIGALRM);
             break;
         }
     }
     pthread_mutex_unlock(&mutex);
     return NULL;
+}
+
+/**
+ * @brief Signal handler for SIGALRM.
+ *
+ * Raises a Ruby exception if timeout occurred.
+ *
+ * @param signum The signal number (SIGALRM)
+ */
+static void sigalrm_handler(int signum) {
+    if (__atomic_load_n(&global_timeout_data->timeout_occurred, __ATOMIC_SEQ_CST)) {
+        rb_raise(rb_eTimeoutError, "execution expired");
+    }
 }
 
 /**
@@ -113,27 +101,30 @@ static VALUE ruby_timeout_safe_timeout(VALUE self, VALUE seconds) {
         timeout = 0;
     } else if (FIXNUM_P(seconds)) {
         timeout = FIX2LONG(seconds);
+    } else if (RB_TYPE_P(seconds, T_BIGNUM)) {
+        timeout = NUM2LL(seconds);
     } else {
         timeout = NUM2LONG(seconds);
     }
 
-    if (timeout < 0) {
-        rb_raise(rb_eArgError, "timeout value must be a positive number or nil");
+    if (timeout < 1) {
+        rb_raise(rb_eArgError, "timeout value must be at least 1 second");
     }
 
     struct timeout_data data = {
         .timeout = timeout,
         .timeout_occurred = 0,
         .block_finished = 0,
-        .signal_received = 0
+        .signal_received = 0,
+        .main_thread = pthread_self()
     };
 
     pthread_mutex_lock(&global_data_mutex);
     global_timeout_data = &data;
     pthread_mutex_unlock(&global_data_mutex);
 
-    /* Set up signal handlers for SIGTERM and SIGINT */
-    struct sigaction sa, old_sa_term, old_sa_int;
+    /* Set up signal handlers for SIGTERM, SIGINT, and SIGALRM */
+    struct sigaction sa, old_sa_term, old_sa_int, old_sa_alrm;
     sigemptyset(&sa.sa_mask);
     sa.sa_handler = signal_handler;
     sa.sa_flags = 0;
@@ -145,11 +136,22 @@ static VALUE ruby_timeout_safe_timeout(VALUE self, VALUE seconds) {
         rb_sys_fail("sigaction");
     }
 
+    sa.sa_handler = sigalrm_handler;
+    if (sigaction(SIGALRM, &sa, &old_sa_alrm) == -1) {
+        sigaction(SIGTERM, &old_sa_term, NULL);
+        sigaction(SIGINT, &old_sa_int, NULL);
+        pthread_mutex_lock(&global_data_mutex);
+        global_timeout_data = NULL;
+        pthread_mutex_unlock(&global_data_mutex);
+        rb_sys_fail("sigaction");
+    }
+
     /* Create timeout thread */
     pthread_t timeout_thread;
     if (pthread_create(&timeout_thread, NULL, timeout_function, &data) != 0) {
         sigaction(SIGTERM, &old_sa_term, NULL);
         sigaction(SIGINT, &old_sa_int, NULL);
+        sigaction(SIGALRM, &old_sa_alrm, NULL);
         pthread_mutex_lock(&global_data_mutex);
         global_timeout_data = NULL;
         pthread_mutex_unlock(&global_data_mutex);
@@ -176,6 +178,7 @@ static VALUE ruby_timeout_safe_timeout(VALUE self, VALUE seconds) {
     /* Restore the original signal handlers */
     sigaction(SIGTERM, &old_sa_term, NULL);
     sigaction(SIGINT, &old_sa_int, NULL);
+    sigaction(SIGALRM, &old_sa_alrm, NULL);
 
     pthread_mutex_lock(&global_data_mutex);
     global_timeout_data = NULL;
@@ -211,7 +214,6 @@ static void cleanup_timeout_safe(void) {
  * in the forked child process.
  */
 static void reinit_after_fork(void) {
-    in_forked_child = 1;
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cond, NULL);
     pthread_mutex_init(&global_data_mutex, NULL);

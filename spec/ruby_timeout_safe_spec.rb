@@ -3,7 +3,7 @@
 RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
   it 'raises a Timeout::Error if the block execution time exceeds the limit' do
     expect do
-      RubyTimeoutSafe.timeout(1) { sleep 2 }
+      RubyTimeoutSafe.timeout(1) { sleep 100 }
     end.to raise_error(Timeout::Error, 'execution expired')
   end
 
@@ -31,5 +31,17 @@ RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
     expect do
       RubyTimeoutSafe.timeout(2) { raise 'some other error' }
     end.to raise_error(RuntimeError, 'some other error')
+  end
+
+  it 'raises an ArgumentError if the timeout value is less than 1 second' do
+    expect do
+      RubyTimeoutSafe.timeout(0.5) { sleep 1 }
+    end.to raise_error(ArgumentError, 'timeout value must be at least 1 second')
+  end
+
+  it 'handles Bignum values for timeout' do
+    expect do
+      RubyTimeoutSafe.timeout(10**10) { 42 }
+    end.not_to raise_error
   end
 end

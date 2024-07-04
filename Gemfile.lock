@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ruby-timeout-safe (0.1.0)
+    ruby_timeout_safe (0.1.0)
 
 GEM
   remote: https://rubygems.org/
@@ -106,7 +106,7 @@ DEPENDENCIES
   rake-compiler
   rspec (~> 3.0)
   rubocop-rails_config (~> 1.16)
-  ruby-timeout-safe!
+  ruby_timeout_safe!
 
 BUNDLED WITH
    2.5.14

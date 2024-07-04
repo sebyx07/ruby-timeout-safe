@@ -16,7 +16,7 @@ ruby-timeout-safe is a Ruby C extension that provides a safe and reliable timeou
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'ruby-timeout-safe'
+gem 'ruby_timeout_safe'
 ```
 
 And then execute:
