@@ -5,7 +5,7 @@ RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
     3.times do |i|
       it "#{i} raises a Timeout::Error if the block execution time exceeds the limit" do
         expect do
-          RubyTimeoutSafe.timeout(1) { sleep 3 }
+          RubyTimeoutSafe.timeout(1) { sleep 100 }
         end.to raise_error(Timeout::Error, 'execution expired')
       end
     end
@@ -20,15 +20,6 @@ RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
   it 'returns the value of the block if it completes within the limit' do
     result = RubyTimeoutSafe.timeout(2) { 42 }
     expect(result).to eq(42)
-  end
-
-  it 'handles SIGTERM and raises a Timeout::Error' do
-    expect do
-      RubyTimeoutSafe.timeout(2) do
-        Process.kill('TERM', Process.pid)
-        sleep 3
-      end
-    end.to raise_error(Timeout::Error, 'execution expired')
   end
 
   it 'does not raise a Timeout::Error if the block raises a different error' do

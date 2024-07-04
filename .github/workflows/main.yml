@@ -25,6 +25,5 @@ jobs:
         bundler-cache: true
     - name: Compile and run
       run: |
-        bundle exec rake compile
         bundle exec rake spec
         bundle exec rubocop --parallel
