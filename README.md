@@ -35,7 +35,7 @@ begin
     # Your code here
     sleep 3 # This will raise a TimeoutError
   end
-rescue RubyTimeoutSafe::TimeoutError => e
+rescue Timeout::Error => e
   puts "Execution timed out: #{e.message}"
 end
 ```
