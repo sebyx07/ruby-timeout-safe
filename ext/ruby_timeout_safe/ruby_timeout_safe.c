@@ -230,7 +230,12 @@ void Init_ruby_timeout_safe(void) {
 
     /* Define Timeout::Error if not already defined */
     VALUE timeout_module = rb_define_module("Timeout");
-    rb_eTimeoutError = rb_define_class_under(timeout_module, "Error", rb_eStandardError);
+    VALUE rb_eRuntimeError = rb_const_get(rb_cObject, rb_intern("RuntimeError"));
+    if (!rb_const_defined(timeout_module, rb_intern("Error"))) {
+        rb_eTimeoutError = rb_define_class_under(timeout_module, "Error", rb_eRuntimeError);
+    } else {
+        rb_eTimeoutError = rb_const_get(timeout_module, rb_intern("Error"));
+    }
 
     rb_define_singleton_method(mRubyTimeoutSafe, "timeout", ruby_timeout_safe_timeout, 1);
 
