@@ -1,0 +1,19 @@
+/.bundle/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
+
+# rspec failure tracking
+.rspec_status
+.idea/
+
+*.gem
+*.rbc
+/ext/ruby-timeout-safe/*.o
+/ext/ruby-timeout-safe/*.so
+/ext/ruby_timeout_safe/Makefile
+/lib/ruby_timeout_safe/*.so

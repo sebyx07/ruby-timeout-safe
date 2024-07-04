@@ -1,0 +1,18 @@
+# The RubyTimeoutSafe module provides a safe and reliable timeout functionality
+# for executing Ruby blocks. It uses POSIX threads (pthreads) and signal handling
+# to ensure that timeouts are enforced even in the presence of blocking operations
+# or long-running computations.
+module RubyTimeoutSafe
+  # The current version of the Ruby::Timeout::Safe module.
+  VERSION: String
+
+  # Executes the given block with a specified timeout duration.
+  #
+  # @param seconds [Integer, Float, nil] The timeout duration in seconds.
+  #   If `nil` is provided, the block will be executed without a timeout.
+  # @yield The block to be executed with the specified timeout.
+  # @raise [ArgumentError] If the `seconds` argument is negative.
+  # @raise [Timeout::Error] If the block execution exceeds the specified timeout.
+  # @return [Object] The result of the block execution.
+  def self.timeout: (seconds: (Integer)) { () -> untyped } -> untyped
+end
