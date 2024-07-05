@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
 
     The gem defines a `RubyTimeoutSafe` module with a `timeout` method that executes a given
     Ruby block with a specified timeout duration. If the block execution exceeds the timeout,
-    a `TimeoutError` exception is raised.
+    a `Timeout::Error` exception is raised.
 
     This implementation leverages Ruby's built-in threading and monotonic time functions to
     provide a robust timeout mechanism.
