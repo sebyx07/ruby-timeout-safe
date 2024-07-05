@@ -28,10 +28,10 @@ RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
     end.to raise_error(RuntimeError, 'some other error')
   end
 
-  it 'raises an ArgumentError if the timeout value is less than 1 second' do
+  it 'raises an ArgumentError if the timeout value is less than 0.1 second' do
     expect do
-      RubyTimeoutSafe.timeout(0.5) { sleep 1 }
-    end.to raise_error(ArgumentError, 'timeout value must be at least 1 second')
+      RubyTimeoutSafe.timeout(0.01) { sleep 0.01 }
+    end.to raise_error(ArgumentError, 'timeout value must be at least 0.1 second')
   end
 
   it 'handles Bignum values for timeout' do
