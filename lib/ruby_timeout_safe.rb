@@ -5,10 +5,11 @@ require_relative 'ruby_timeout_safe/version'
 
 # A safe timeout implementation for Ruby using monotonic time.
 module RubyTimeoutSafe
-  def self.timeout(seconds=nil) # rubocop:disable Metrics/MethodLength
+  def self.timeout(seconds = nil)
     return yield if seconds.nil? || seconds.zero?
 
     raise ArgumentError, 'timeout value must be at least 0.1 second' if seconds < 0.1
+
     current_thread = Thread.current
 
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
