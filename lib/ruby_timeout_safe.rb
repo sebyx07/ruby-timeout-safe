@@ -8,6 +8,8 @@ module RubyTimeoutSafe
   def self.timeout(seconds = nil)
     return yield if seconds.nil? || seconds.zero?
 
+    raise ArgumentError, 'timeout value must be at least 0.1 second' if seconds < 0.1
+
     current_thread = Thread.current
 
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -16,7 +18,7 @@ module RubyTimeoutSafe
         elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
         break if elapsed_time >= seconds
 
-        Thread.pass
+        sleep(0.05) # Sleep briefly to prevent busy-waiting
       end
       current_thread.raise Timeout::Error, 'execution expired'
     end

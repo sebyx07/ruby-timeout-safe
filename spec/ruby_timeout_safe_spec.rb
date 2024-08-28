@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
+RSpec.describe RubyTimeoutSafe do
   describe 'multiple time calls' do
     3.times do |i|
       it "#{i} raises a Timeout::Error if the block execution time exceeds the limit" do
@@ -26,6 +26,12 @@ RSpec.describe RubyTimeoutSafe do # rubocop:disable Metrics/BlockLength
     expect do
       RubyTimeoutSafe.timeout(2) { raise 'some other error' }
     end.to raise_error(RuntimeError, 'some other error')
+  end
+
+  it 'raises an ArgumentError if the timeout value is less than 0.1 second' do
+    expect do
+      RubyTimeoutSafe.timeout(0.01) { sleep 0.01 }
+    end.to raise_error(ArgumentError, 'timeout value must be at least 0.1 second')
   end
 
   it 'handles Bignum values for timeout' do
